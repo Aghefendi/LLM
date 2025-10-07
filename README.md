@@ -30,3 +30,6 @@ pip install -q git+https://github.com/huggingface/transformers.git@main git+http
 pip install peft
 pip install transformers torch 
 
+
+retrained Trendyol Chat and llama Compared
+![LLM Model Illustration](https://raw.githubusercontent.com/Aghefendi/LLM/main/image.png)
