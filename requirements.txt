@@ -1,0 +1,9 @@
+bitsandbytes
+datasets
+accelerate
+loralib
+transformers
+peft
+torch
+gradio
+huggingface_hub
