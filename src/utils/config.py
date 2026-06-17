@@ -2,13 +2,17 @@
 """Proje konfigürasyon ayarları"""
 
 # Model IDs
+# Temel (base) modeller
+# NOT: "mistral" adaptörü aslında Trendyol-LLM-7b (Mistral-7B mimarisi tabanlı,
+# Türkçe sohbet modeli) üzerine eğitilmiştir; adapter_config.json bunu doğrular.
 LLAMA_MODEL_ID = "ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1"
-MISTRAL_MODEL_ID = "mistralai/Mistral-7B-v0.1"
-PEFT_LLAMA_MODEL_ID = "adas014/LLamasonverone"
-PEFT_MISTRAL_MODEL_ID = "adas014/Trendsonver1"
+MISTRAL_MODEL_ID = "Trendyol/Trendyol-LLM-7b-chat-v0.1"
+# Fine-tuned LoRA adaptörleri (Hugging Face)
+PEFT_LLAMA_MODEL_ID = "magahcicek/turkish-llama8b-drug-interaction-lora"
+PEFT_MISTRAL_MODEL_ID = "magahcicek/mistral7b-drug-interaction-lora"
 
 # Dataset
-DATASET_NAME = "adas014/kullan"
+DATASET_NAME = "magahcicek/turkish-drug-interaction-qa"
 DATASET_SIZE = 260
 
 # LoRA Configuration

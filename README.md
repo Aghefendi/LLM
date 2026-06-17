@@ -93,16 +93,49 @@ sonuc = evaluator.get_response("aspirin", "grip ilacı")
 print(sonuc)
 ```
 
+## Değerlendirme
+
+Model, **60 örneklik** bir test seti üzerinde değerlendirilir. Her örnek, bilinen bir ilaç etkileşim kaynağına — **TİTCK Kısa Ürün Bilgisi (KÜB) §4.5 "Diğer tıbbi ürünler ile etkileşimler"** — dayalı bir "etkileşim var / yok" etiketi taşır (40 etkileşim, 20 güvenli kombinasyon). Modelin serbest metin çıktısı, basit ve şeffaf bir anahtar-kelime sezgiseliyle "etkileşim var/yok" kararına çevrilir; ardından doğruluk, kesinlik, duyarlılık, F1 ve mekanizma kapsamı hesaplanır.
+
+```bash
+# 1) Test setini üret ve doğrula
+python data/eval/build_test_set.py
+python -m src.evaluation.validate_test_set
+
+# 2) Modeli test seti üzerinde çalıştır + puanla (GPU gerektirir)
+python -m src.evaluation.run_eval --model mistral   # veya --model llama
+
+# Grader birim testleri (GPU gerekmez)
+python -m unittest discover -s tests
+```
+
+Sonuç `data/eval/report.md` dosyasına yazılır. **Mistral (Trendyol-7B) adaptörü** ile son ölçüm (Tesla T4, 4-bit):
+
+| Metrik | Değer |
+|--------|-------|
+| Doğruluk (accuracy) | **%66.7** (36/54 puanlanan) |
+| Kesinlik / Duyarlılık / F1 | %66.7 / **%100** / %80 |
+| Özgüllük (true-negative rate) | **%0** |
+| Mekanizma kapsamı | %18.8 |
+| Çekimser (belirsiz çıktı) | 6/60 |
+
+**Bulgu:** Model, etkileşimli çiftlerin tamamını yakalıyor (duyarlılık %100) ancak **güvenli kombinasyonların hiçbirini** doğru ayırt edemiyor (özgüllük %0; 18 güvenli çiftin tümü yanlış pozitif). Yani model her kombinasyona "risk var" deme eğiliminde — bu da gerçek değeri olan, geliştirmeye açık bir zayıflığı ortaya koyuyor (örn. eğitim setine güvenli/etkileşimsiz örnekler eklemek).
+
+> Doğruluk oranı, serbest metin çıktıdan çıkarılan **basit** bir ölçüttür; klinik geçerlilik iddiası taşımaz. Bkz. yukarıdaki **Uyarı**.
+
 ## Modeller
 
-- Llama Base: ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1
-- Mistral Base: mistralai/Mistral-7B-v0.1
-- Fine-tuned Llama: adas014/LLamasonverone
-- Fine-tuned Mistral: adas014/Trendsonver1
+| Rol | Hugging Face ID | Temel Model | Yöntem |
+|-----|-----------------|-------------|--------|
+| Fine-tuned (Llama) | [`magahcicek/turkish-llama8b-drug-interaction-lora`](https://huggingface.co/magahcicek/turkish-llama8b-drug-interaction-lora) | `ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1` | LoRA (r=64) |
+| Fine-tuned (Mistral) | [`magahcicek/mistral7b-drug-interaction-lora`](https://huggingface.co/magahcicek/mistral7b-drug-interaction-lora) | `Trendyol/Trendyol-LLM-7b-chat-v0.1` (Mistral-7B tabanlı) | LoRA (r=8) |
+| Veri seti | [`magahcicek/turkish-drug-interaction-qa`](https://huggingface.co/datasets/magahcicek/turkish-drug-interaction-qa) | — | 260 Türkçe soru-cevap |
+
+> Fine-tuned modeller, temel modelin üzerine eklenen LoRA **adaptör** ağırlıklarıdır; inference sırasında temel model otomatik indirilir.
 
 ## Lisans
 
-MIT License
+MIT License — bkz. [LICENSE](LICENSE).
 
 ---
 
@@ -199,14 +232,47 @@ result = evaluator.get_response("aspirin", "flu medicine")
 print(result)
 ```
 
+## Evaluation
+
+The model is evaluated on a **60-example** test set. Each example carries a "interaction / no interaction" label grounded in a known drug-interaction source — **TİTCK Summary of Product Characteristics (SmPC) §4.5 "Interaction with other medicinal products"** — with 40 interacting and 20 safe combinations. The model's free-text output is mapped to an interaction / no-interaction decision via a simple, transparent keyword heuristic, then accuracy, precision, recall, F1 and mechanism coverage are computed.
+
+```bash
+# 1) Build and validate the test set
+python data/eval/build_test_set.py
+python -m src.evaluation.validate_test_set
+
+# 2) Run the model over the test set + score it (requires GPU)
+python -m src.evaluation.run_eval --model mistral   # or --model llama
+
+# Grader unit tests (no GPU needed)
+python -m unittest discover -s tests
+```
+
+Results are written to `data/eval/report.md`. Latest run of the **Mistral (Trendyol-7B) adapter** (Tesla T4, 4-bit):
+
+| Metric | Value |
+|--------|-------|
+| Accuracy | **66.7%** (36/54 scored) |
+| Precision / Recall / F1 | 66.7% / **100%** / 80% |
+| Specificity (true-negative rate) | **0%** |
+| Mechanism coverage | 18.8% |
+| Abstained (unclear output) | 6/60 |
+
+**Finding:** the model catches every interacting pair (100% recall) but correctly identifies **none of the safe combinations** (0% specificity; all 18 scored negatives were false positives). In other words it tends to flag *every* combination as risky — a real, improvable weakness (e.g. add safe/non-interacting examples to the training set).
+
+> The accuracy figure is a **simple** metric derived from free-text output; it makes no claim of clinical validity. See the **Warning** above.
+
 ## Models
 
-- Llama Base: ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1
-- Mistral Base: mistralai/Mistral-7B-v0.1
-- Fine-tuned Llama: adas014/LLamasonverone
-- Fine-tuned Mistral: adas014/Trendsonver1
+| Role | Hugging Face ID | Base model | Method |
+|------|-----------------|------------|--------|
+| Fine-tuned (Llama) | [`magahcicek/turkish-llama8b-drug-interaction-lora`](https://huggingface.co/magahcicek/turkish-llama8b-drug-interaction-lora) | `ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1` | LoRA (r=64) |
+| Fine-tuned (Mistral) | [`magahcicek/mistral7b-drug-interaction-lora`](https://huggingface.co/magahcicek/mistral7b-drug-interaction-lora) | `Trendyol/Trendyol-LLM-7b-chat-v0.1` (Mistral-7B based) | LoRA (r=8) |
+| Dataset | [`magahcicek/turkish-drug-interaction-qa`](https://huggingface.co/datasets/magahcicek/turkish-drug-interaction-qa) | — | 260 Turkish Q&A |
+
+> The fine-tuned models are LoRA **adapter** weights on top of the base model; the base is downloaded automatically at inference time.
 
 ## License
 
-MIT License
+MIT License — see [LICENSE](LICENSE).
 
